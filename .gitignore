@@ -300,3 +300,4 @@ pyrightconfig.json
 data/
 camera-parameters/
 output/
+.idea

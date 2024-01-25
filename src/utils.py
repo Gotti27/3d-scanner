@@ -2,19 +2,16 @@ import math
 import random
 from typing import Sequence
 
-import numpy
-import numpy as np
 import cv2 as cv
-import pickle
-import os
+import numpy as np
 
 
 def pre_process_frame(frame):
     gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
 
     # gray = cv.medianBlur(gray, 5)
-    minThreshold = 255 # cv.getTrackbarPos('Min', 'debug')
-    maxThreshold = 255 # cv.getTrackbarPos('Max', 'debug')
+    minThreshold = 255  # cv.getTrackbarPos('Min', 'debug')
+    maxThreshold = 255  # cv.getTrackbarPos('Max', 'debug')
 
     # gray = cv.bitwise_not(gray)
 
@@ -26,15 +23,24 @@ def pre_process_frame(frame):
     # test = cv.morphologyEx(test, cv.MORPH_OPEN, np.ones((3, 3), np.uint8))
     # cv.dilate(test, np.ones((9, 9), np.uint8), test, iterations=1)
     # cv.erode(test, np.ones((21, 21), np.uint8), test, iterations=1)
-    cv.imshow('test', test)
 
     cannied = cv.Canny(test, minThreshold, maxThreshold, L2gradient=True)
     # cv.dilate(cannied, np.ones((15, 15), np.uint8), test, iterations=1)
     # cv.erode(test, np.ones((15, 15), np.uint8), cannied, iterations=1)
+
+    # test = cv.medianBlur(test, 3)
+    _, test = cv.threshold(test, 90, 255, cv.THRESH_BINARY_INV)
+    contours, hierarchy = cv.findContours(test, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
+    hej = frame.copy()
+    cv.drawContours(hej, contours, -1, (0, 255, 0), 5)
+    cv.imshow('test', hej)
+
     cannied = cv.morphologyEx(cannied, cv.MORPH_CLOSE, np.ones((11, 11), np.uint8))
     # cannied = cv.morphologyEx(cannied, cv.MORPH_OPEN, np.ones((3, 3), np.uint8))
 
+    test = cv.morphologyEx(test, cv.MORPH_CLOSE, np.ones((11, 11), np.uint8))
     return cannied
+    # return test
 
 
 def render_ruler(frame):
@@ -53,8 +59,8 @@ def my_ransac(frame, points):
         return None
     candidates = []
     for _ in range(0, 100):
-        hypotetical = random.sample(points, 7)
-        candidate = cv.fitEllipse(np.array(hypotetical))
+        sampled = random.sample(points, 7)
+        candidate = cv.fitEllipse(np.array(sampled))
         inliers = []
         axis_1, axis_2 = candidate[1]
 
@@ -101,7 +107,7 @@ def get_point_color(frame, point):
     elif 150 < b < 200:
         return "C"
     else:
-        return None # "{}, {}, {}".format(b, g, r)
+        return None  # "{}, {}, {}".format(b, g, r)
 
 
 def convert_to_polar(ellipse: tuple[Sequence[float], Sequence[int], float], point):
@@ -116,8 +122,22 @@ def convert_to_polar(ellipse: tuple[Sequence[float], Sequence[int], float], poin
 
     return radius, angle_degrees
 
+
 def convert_to_cartesian(ellipse: tuple[Sequence[float], Sequence[int], float], radius, angle):
     radians = math.radians(angle)
     radius = np.linalg.norm(vector)
     angle = math.tan(vector[1], vector[0])
 
+
+def find_line_equation(x1, y1, x2, y2):
+    if x2 - x1 == 0:
+        a = 1
+        b = 0
+        c = -x1
+    else:
+        m = (y2 - y1) / (x2 - x1)
+        a = -m
+        b = 1
+        c = m * x1 - y1
+
+    return a, b, c

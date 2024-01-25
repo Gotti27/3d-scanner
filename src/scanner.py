@@ -1,12 +1,14 @@
+import pickle
 import sys
 
 from marker import *
+from src.backMarker import find_rectangle, process_rectangle
 from utils import *
 
 marker_ref = create_virtual_marker()
 cv.startWindowThread()
 cv.namedWindow("scanner")
-cv.namedWindow("debug")
+# cv.namedWindow("debug")
 
 if len(sys.argv) < 2:
     raise Exception("no input file, exiting")
@@ -44,6 +46,10 @@ while cap.isOpened():
 
     canny = pre_process_frame(frame)
     contours, hierarchy = cv.findContours(canny, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
+
+    rectangle = find_rectangle(frame, contours, w, h)
+    process_rectangle(rectangle, frame, original, mtx, dist)
+
     plate = find_plate_elements(frame, contours, w, h)
     process_plate(plate, frame, original, mtx, dist)
 

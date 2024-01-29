@@ -35,3 +35,26 @@ def find_laser_plate_point(frame, center):
     cv.imshow("third point", cropped)
 
     return [round(middle[0] + center[0][0][0] - 150), round(middle[1] + center[0][0][1] + 100)]
+
+
+def detect_laser_points(frame, ellipse):
+    cv.ellipse(frame, ellipse, (0, 255, 0), thickness=5)
+    redChannel = frame[
+                 round(ellipse[0][1] - ellipse[1][0] / 2): round(ellipse[0][1] + ellipse[1][0] / 2),
+                 round(ellipse[0][0] - ellipse[1][1] / 2): round(ellipse[0][0] + ellipse[1][1] / 2),
+                 2]
+    redChannel = cv.medianBlur(redChannel, 5)
+    _, laser = cv.threshold(redChannel, 235, 255, cv.THRESH_BINARY)
+    laser = cv.morphologyEx(laser, cv.MORPH_CLOSE, np.ones((5, 5), np.uint8))
+    # laser = cv.morphologyEx(laser, cv.MORPH_OPEN, np.ones((5, 5), np.uint8))
+    intersections = []
+    for i in range(0, len(laser)):
+        for j in range(0, len(laser[i])):
+            if laser[i][j] > 0:
+                intersections.append(
+                    [j + round(ellipse[0][0] - ellipse[1][1] / 2), i + round(ellipse[0][1] - ellipse[1][0] / 2)])
+                break
+
+    frame = laser
+    cv.imshow("intersections", frame)
+    return intersections

@@ -92,14 +92,11 @@ def process_plate(plate, frame, original, mtx, dist):
         return
 
     cv.ellipse(frame, center, (255, 0, 0), thickness=3)
-    # cv.ellipse(frame, i, (255, 0, 0), thickness=3)
-    # cv.drawMarker(frame, (round(center[0][0]), center(i[0][1])), (255, 0, 255))
     cv.drawMarker(frame, (round(center[0][0]), round(center[0][1])), (255, 0, 255))
 
     # cv.line(frame, center[0], (center[0][0], center[0][1] - 50), (100,100, 0), 5)
 
     plate = list(filter(lambda d: 20 < convert_to_polar(center, d)[0] < 310, plate))
-
     symbols = []
 
     for p in plate:
@@ -135,15 +132,8 @@ def process_plate(plate, frame, original, mtx, dist):
                (255, 255, 0), 2, cv.LINE_AA)
 
     symbols += symbols
-
-    # print(symbols)
-
+    # symbols = symbols[10:]
     word = []
-
-    '''
-    for s in symbols:
-        print(round(s[0]))
-    '''
 
     for i in range(len(symbols) - 1):
         if symbols[i] is None or symbols[i + 1] is None:
@@ -157,14 +147,14 @@ def process_plate(plate, frame, original, mtx, dist):
         else:
             word = []
 
+    # print(len(word))
+
     if len(word) < 4:
         cv.putText(frame, "ERROR: word too short", (100, 100), cv.FONT_HERSHEY_SIMPLEX, 1,
                    (255, 255, 0), 2, cv.LINE_AA)
         return
 
-    alphabet = 'YWMBMMCCCYWBMYWBYWBC'
-    print(alphabet)
-    alphabet = alphabet * 2
+    alphabet = 'YWMBMMCCCYWBMYWBYWBC' * 2
 
     # print("".join(map(lambda w: w[1], word)))
     offset = alphabet.find("".join(map(lambda w: w[1], word)))
@@ -173,24 +163,24 @@ def process_plate(plate, frame, original, mtx, dist):
                (255, 255, 0), 2, cv.LINE_AA)
 
     # symbols = [x for index, x in enumerate(symbols) if offset < index < offset + 19]
-    print(offset)
-
-    print("".join(list(map(lambda s: s[1] if s is not None else '_', symbols))))
-
-    print("---")
+    # print(offset)
+    # print("".join(list(map(lambda s: s[1] if s is not None else '_', symbols))))
+    # print("---")
 
     obj_points = []
     pln_points = []
+
     for i in range(19):
         if symbols[i] is None:
             break
+
         symbols[i][4] = (offset + i) % 20
 
-        a = math.radians(18 * ((offset + i) % 20))
+        angle = math.radians(18 * ((offset + i) % 20))
 
         pln_p = [
-            (150 * np.cos(a)) + 500,  # (75 * np.cos(a)),
-            (150 * np.sin(a)) + 500,  # (75 * np.sin(a)),
+            (75 * np.cos(angle)),  # (300 * np.cos(angle)) + 500
+            (75 * np.sin(angle))  # (300 * np.sin(angle)) + 500
         ]
 
         obj_points.append(symbols[i][2])
@@ -198,37 +188,60 @@ def process_plate(plate, frame, original, mtx, dist):
         cv.putText(frame, f"{(offset + i) % 20}", symbols[i][2], cv.FONT_HERSHEY_SIMPLEX, 1,
                    (0, 0, 0), 2, cv.LINE_AA)
 
+    if len(obj_points) < 4 or len(pln_points) < 4:
+        return
     H = cv.findHomography(np.array(obj_points), np.array(pln_points))
 
     transformed = cv.warpPerspective(original, H[0], (1000, 1000))
 
+    cv.line(transformed, [0, 0], [75, 0], (255, 0, 0), 5)
+    cv.line(transformed, [0, 0], [0, 75], (0, 255, 0), 5)
+    cv.line(transformed, [0, 0], [-75, 0], (255, 255, 0), 5)
+    cv.line(transformed, [0, 0], [0, -75], (0, 0, 255), 5)
+    cv.drawMarker(transformed, [0, 0], (0, 0, 0), cv.MARKER_STAR, thickness=5)
     # obj_points = list(map(lambda i: list(i).append(0), obj_points))
 
     obj_points = np.array(obj_points, dtype=np.float32)
     pln_points = np.array(pln_points, dtype=np.float32)
 
-    obj_points = np.append(obj_points, np.zeros((len(obj_points), 1)), axis=1)
+    pln_points = np.append(pln_points, np.zeros((len(pln_points), 1)), axis=1)
 
-    _, r, t = cv.solvePnP(np.array(obj_points, dtype=np.float32), np.array(pln_points, dtype=np.float32),
+    _, r, t = cv.solvePnP(np.array(pln_points, dtype=np.float32), np.array(obj_points, dtype=np.float32),
                           mtx, dist, flags=cv.SOLVEPNP_IPPE)
 
     # r = cv.Rodrigues(r)
-    print(t)
+    # print(r)
+    # print(t)
 
-    g = cv.projectPoints(np.array(
-        [
-            0., 0., 10.
-        ]
-    ), r, t, mtx, dist)
-    cv.drawMarker(frame, [round(i) for i in g[0][0][0]], (255, 0, 255), cv.MARKER_STAR)
+    g, _ = cv.projectPoints(np.array([
+        [0, 0, 0],
+        [75, 0, 0],
+        [0, 75, 0],
+        [0, -75, 0],
+        [-75, 0, 0],
+        [0, 0, 75],
+
+        # [800, 800, 0],
+        # [800, 200, 0],
+        # [200, 200, 0],
+        # [200, 800, 0],
+    ], dtype=np.float32), r, t, mtx, dist)
+    # print("g (" + str(g[1][0]) + ")")
+    cv.line(frame, [round(i) for i in g[0][0]], [round(i) for i in g[1][0]], (255, 0, 0), 5)
+    cv.line(frame, [round(i) for i in g[0][0]], [round(i) for i in g[2][0]], (0, 255, 0), 5)
+    cv.line(frame, [round(i) for i in g[0][0]], [round(i) for i in g[3][0]], (0, 0, 255), 5)
+    cv.line(frame, [round(i) for i in g[0][0]], [round(i) for i in g[4][0]], (255, 255, 0), 5)
+    cv.line(frame, [round(i) for i in g[0][0]], [round(i) for i in g[5][0]], (255, 0, 255), 5)
+
+    # cv.line(frame, [round(i) for i in g[1][0]], [round(i) for i in g[7][0]], (255, 0, 255), 5)
+    # cv.line(frame, [round(i) for i in g[2][0]], [round(i) for i in g[6][0]], (255, 0, 255), 5)
+    # cv.line(frame, [round(i) for i in g[3][0]], [round(i) for i in g[8][0]], (255, 0, 255), 5)
+    # cv.line(frame, [round(i) for i in g[9][0]], [round(i) for i in g[4][0]], (255, 0, 255), 5)
+
+    cv.drawMarker(frame, [round(i) for i in g[0][0]], (255, 0, 255), cv.MARKER_STAR)
 
     # test = [500, 500, 0]
 
     cv.imshow('transformed', transformed)
 
-    '''
-    print("--")
-    print(alphabet)
-    print("".join(list(map(lambda s: s[1], symbols))))
-    print("--")
-    '''
+    return center, r, t

@@ -135,8 +135,8 @@ def process_rectangle(rectangle, frame, original, mtx, dist):
     cv.line(frame, [round(i) for i in g[0][0]], [round(i) for i in g[2][0]], (0, 0, 255), 5)
     cv.line(frame, [round(i) for i in g[0][0]], [round(i) for i in g[3][0]], (0, 255, 0), 5)
     cv.line(frame, [round(i) for i in g[0][0]], [round(i) for i in g[6][0]], (255, 0, 255), 5)
-    cv.drawMarker(frame, [round(i) for i in g[4][0]], (255, 255, 0), cv.MARKER_CROSS, 30, 5),
-    cv.drawMarker(frame, [round(i) for i in g[5][0]], (255, 255, 0), cv.MARKER_CROSS, 30, 5),
+    # cv.drawMarker(frame, [round(i) for i in g[4][0]], (255, 255, 0), cv.MARKER_CROSS, 30, 5),
+    # cv.drawMarker(frame, [round(i) for i in g[5][0]], (255, 255, 0), cv.MARKER_CROSS, 30, 5),
 
     cv.line(frame, [round(i) for i in g[4][0]], [round(i) for i in g[5][0]], (0, 255, 0), 5)
     '''

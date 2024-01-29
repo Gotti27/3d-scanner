@@ -123,12 +123,6 @@ def convert_to_polar(ellipse: tuple[Sequence[float], Sequence[int], float], poin
     return radius, angle_degrees
 
 
-def convert_to_cartesian(ellipse: tuple[Sequence[float], Sequence[int], float], radius, angle):
-    radians = math.radians(angle)
-    radius = np.linalg.norm(vector)
-    angle = math.tan(vector[1], vector[0])
-
-
 def find_line_equation(x1, y1, x2, y2):
     if x2 - x1 == 0:
         a = 1
@@ -153,3 +147,17 @@ def find_plane_equation(point1, point2, point3):
     d = np.dot(normal_vector, np.array(point1))
 
     return a, b, c, d
+
+
+def find_plane_line_intersection(plane, point1, point2):
+    direction = point2 - point1
+    plane_norm = np.array([plane[0], plane[1], plane[2]])
+    product = plane_norm @ direction
+    if abs(product) > 1e-6:
+        p_co = plane_norm * (-plane[3] / (plane_norm @ plane_norm))
+
+        w = point1 - p_co
+        fac = - (plane_norm @ w) / product
+        return point1 + (direction * fac)
+
+    return None

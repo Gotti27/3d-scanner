@@ -62,7 +62,7 @@ def find_plate_elements(frame: np.ndarray, contours, w, h):
 
         ellipse = cv.fitEllipse(c)
 
-        if 20 < ellipse[1][0] < 40 and 20 < ellipse[1][1] < 50 and \
+        if 20 < ellipse[1][0] < 60 and 20 < ellipse[1][1] < 60 and \
                 20 < ellipse[0][0] < w - 20 and h / 2 < ellipse[0][1] < h:
             flag = True
             center = (round(ellipse[0][0]), round(ellipse[0][1]))

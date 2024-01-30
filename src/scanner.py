@@ -1,40 +1,46 @@
+import argparse
 import pickle
-import sys
 
 from marker import *
 from src.backMarker import *
 from src.laserPlane import *
 from utils import *
 
-# marker_ref = create_virtual_marker()
+parser = argparse.ArgumentParser()
+parser.add_argument("-i", "--input", dest="inputFile", help="Input file path")
+parser.add_argument("-o", "--output", dest="outputFile", help="Output file path")
+parser.add_argument("-d", "--debug", dest="debug", help="Enable debug mode", action="store_true", default=False)
+args = parser.parse_args()
+
+if args.inputFile is None:
+    raise Exception("no input file, exiting")
+if args.outputFile is None:
+    raise Exception("no output file, exiting")
+
 cv.startWindowThread()
 cv.namedWindow("scanner")
-# cv.namedWindow("debug")
-
-if len(sys.argv) < 2:
-    raise Exception("no input file, exiting")
-if len(sys.argv) < 3:
-    raise Exception("no output file, exiting")
 
 # Camera parameters loading
 file = open('../camera-parameters/camera-matrix', 'rb')
 mtx = pickle.load(file)
-print(mtx)
+print("camera matrix", mtx)
 file.close()
 
 file = open('../camera-parameters/camera-distortion', 'rb')
 dist = pickle.load(file)
-print(dist)
+print("camera distortion vector", dist)
 file.close()
 
-cap = cv.VideoCapture(sys.argv[1])
-output_file = open(sys.argv[2], "w")
+# opening outputfile
+output_file = open(args.outputFile, "w")
 
+# extracting video info from first frame and calculating newCameraMatrix
+cap = cv.VideoCapture(args.inputFile)
 h, w = cap.read()[1].shape[:2]
 new_camera_matrix, roi = cv.getOptimalNewCameraMatrix(mtx, dist, (w, h), 1, (w, h))
 x, y, w, h = roi
 
-print(new_camera_matrix)
+print("new camera matrix", new_camera_matrix)
 print("--- Parameters Loaded ---")
 
 while cap.isOpened():
@@ -42,7 +48,7 @@ while cap.isOpened():
     if not ret:
         break
 
-    # undistort and crop
+    # undistort frame and crop
     frame = cv.undistort(frame, mtx, dist, None, new_camera_matrix)
     frame = frame[y:y + h, x:x + w]
 
@@ -54,25 +60,23 @@ while cap.isOpened():
     rectangle = find_rectangle(frame, contours, w, h)
     back_r, back_t, back_a, back_b, back_c = process_rectangle(rectangle, frame, original, mtx, dist)
 
-    plate = find_plate_elements(frame, contours, w, h)
-
-    center, plate_r, plate_t = process_plate(plate, frame, original, mtx, dist)
-
-    g, _ = cv.projectPoints(np.array([
-        [0, 0, 0],
-    ], dtype=np.float32), plate_r, plate_t, mtx, dist)
-
-    third = find_laser_plate_point(original.copy(), g)
-
-    third_camera = np.array([third[0], third[1], 1])
-    third_camera = np.linalg.inv(mtx) @ third_camera
-    third_camera = np.concatenate((third_camera, [1]))
+    plate_elements = find_plate_elements(frame, contours, w, h)
+    plate, plate_r, plate_t = process_plate(plate_elements, frame, original, mtx, dist)
 
     camera_to_plate = np.concatenate([
         np.concatenate([np.array(cv.transpose(cv.Rodrigues(plate_r)[0])),
                         np.array(- cv.transpose(cv.Rodrigues(plate_r)[0]) @ plate_t)], axis=1),
         np.array([[0, 0, 0, 1]])
     ], axis=0)
+
+    center = cv.projectPoints(np.array([
+        [0, 0, 0],
+    ], dtype=np.float32), plate_r, plate_t, mtx, dist)[0][0][0]
+
+    third = find_laser_plate_point(original.copy(), center)
+    third_camera = np.array([third[0], third[1], 1])
+    third_camera = np.linalg.inv(mtx) @ third_camera
+    third_camera = np.concatenate((third_camera, [1]))
 
     third_plate = camera_to_plate @ third_camera
     third_plate = [third_plate[0] / third_plate[3], third_plate[1] / third_plate[3],
@@ -113,7 +117,7 @@ while cap.isOpened():
     cv.drawMarker(frame, [round(i) for i in o[2][0]], (255, 255, 0), cv.MARKER_CROSS, 30, 5)
     cv.drawMarker(frame, [round(i) for i in o[3][0]], (255, 0, 0), cv.MARKER_CROSS, 30, 5)
 
-    laser_points = detect_laser_points(original.copy(), center)
+    laser_points = detect_laser_points(original.copy(), plate)
     for i in laser_points:
         i_camera = np.array([i[0], i[1], 1])
         i_camera = np.linalg.inv(mtx) @ i_camera
@@ -123,7 +127,6 @@ while cap.isOpened():
                    i_plate[2] / i_plate[3]]
 
         point = find_plane_line_intersection(plane, origin, i_plate)
-        print(point)
 
         test, _ = cv.projectPoints(np.array([
             point,

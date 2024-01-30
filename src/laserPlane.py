@@ -6,9 +6,9 @@ import numpy as np
 
 def find_laser_plate_point(frame, center):
     cropped = frame[
-              round(center[0][0][1]) + 100:round(center[0][0][1]) + 200,
-              round(center[0][0][0]) - 150:round(center[0][0][0]) + 150,
-              :]  # , round(center[0][0][0]):]  # , 2]
+              round(center[1]) + 100:round(center[1]) + 200,
+              round(center[0]) - 150:round(center[0]) + 150,
+              :]
     redChannel = cropped[:, :, 2]
     redChannel = cv.medianBlur(redChannel, 5)
     _, laser = cv.threshold(redChannel, 235, 255, cv.THRESH_BINARY)
@@ -34,7 +34,7 @@ def find_laser_plate_point(frame, center):
 
     cv.imshow("third point", cropped)
 
-    return [round(middle[0] + center[0][0][0] - 150), round(middle[1] + center[0][0][1] + 100)]
+    return [round(middle[0] + center[0] - 150), round(middle[1] + center[1] + 100)]
 
 
 def detect_laser_points(frame, ellipse):

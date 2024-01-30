@@ -61,7 +61,6 @@ def find_plate_elements(frame: np.ndarray, contours, w, h):
             continue
 
         ellipse = cv.fitEllipse(c)
-        # if hierarchy[0][i][2] != -1:
 
         if 20 < ellipse[1][0] < 40 and 20 < ellipse[1][1] < 50 and \
                 20 < ellipse[0][0] < w - 20 and h / 2 < ellipse[0][1] < h:

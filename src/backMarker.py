@@ -3,7 +3,7 @@ import math
 import cv2 as cv
 import numpy as np
 
-from src.utils import find_line_equation
+from utils import find_line_equation
 
 
 def find_rectangle(frame, contours2, w, h):
@@ -29,7 +29,7 @@ def find_rectangle(frame, contours2, w, h):
 
         area = cv.contourArea(contour)
 
-        if len(polygon) == 4 and area > 100000 and any([p[0][1] < 200 for p in polygon]):
+        if len(polygon) == 4 and area > 100000 and any([p[0][1] < 300 for p in polygon]):
             # polygon = [p[0] for p in polygon]
             a, b, c, d = polygon
             # cv.drawMarker(r, a[0], (255, 255, 0), cv.MARKER_CROSS, 30, 5)

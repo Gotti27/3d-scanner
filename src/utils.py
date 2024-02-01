@@ -32,44 +32,35 @@ def render_ruler(frame):
     cv.putText(frame, "|", (800, 100), cv.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2, cv.LINE_AA)
 
 
-def my_ransac(frame, points):
+def fit_ellipse_plate(frame, points, debug=False):
     if len(points) < 7:
-        return None
+        raise Exception("too few points")
+
     candidates = []
     for _ in range(0, 100):
         sampled = random.sample(points, 7)
         candidate = cv.fitEllipse(np.array(sampled))
         inliers = []
+
+        center_x, center_y = candidate[0]
         axis_1, axis_2 = candidate[1]
+        angle = candidate[2]
 
         for p in points:
-            x1, y1 = p
-            x2, y2 = candidate[0]
-
-            # distance = math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-
-            if math.isnan(candidate[1][0]) or math.isnan(candidate[1][1]):
+            if math.isnan(axis_1) or math.isnan(axis_2):
                 continue
 
-            e_p = cv.ellipse2Poly((round(x2), round(y2)), (round(candidate[1][0] / 2), round(candidate[1][1] / 2)),
-                                  round(candidate[2]), 0, 360, 1)
+            poly = cv.ellipse2Poly((round(center_x), round(center_y)), (round(axis_1 / 2), round(axis_2 / 2)),
+                                   round(angle), 0, 360, 1)
 
-            # cv.polylines(frame, [e_p], True, (0, 255, 255))
-
-            # print(cv.pointPolygonTest(e_p, p, True))
-            if abs(cv.pointPolygonTest(e_p, p, True)) < 5:
-                cv.drawMarker(frame, np.array(p).astype(int), (255, 0, 255), cv.MARKER_TRIANGLE_UP)
-                cv.line(frame, np.array(p).astype(int), np.array(candidate[0]).astype(int), color=(0, 255, 255))
-                # cv.putText(frame, str(round(distance)), np.array(p).astype(int), cv.FONT_HERSHEY_SIMPLEX, 1,
-                #           (255, 255, 0), 2, cv.LINE_AA)
+            if abs(cv.pointPolygonTest(np.array(poly), p, True)) < 5:  # TODO: lower this threshold
+                # cv.drawMarker(frame, np.array(p).astype(int), (255, 0, 255), cv.MARKER_TRIANGLE_UP)
+                # cv.line(frame, np.array(p).astype(int), np.array(candidate[0]).astype(int), color=(0, 255, 255))
                 inliers.append(p)
 
         candidates.append([candidate, len(inliers)])
 
-    # print(candidates)
     return max(candidates, key=lambda item: item[1])[0]
-
-    # return cv.fitEllipse(np.array(points))
 
 
 def are_all_leq(v1, v2):

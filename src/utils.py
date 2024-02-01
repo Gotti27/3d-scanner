@@ -6,41 +6,19 @@ import cv2 as cv
 import numpy as np
 
 
-def pre_process_frame(frame):
+def pre_process_frame(frame, debug=False):
     gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
 
-    # gray = cv.medianBlur(gray, 5)
-    minThreshold = 255  # cv.getTrackbarPos('Min', 'debug')
-    maxThreshold = 255  # cv.getTrackbarPos('Max', 'debug')
+    _, gray = cv.threshold(gray, 90, 255, cv.THRESH_BINARY_INV)
+    gray = cv.morphologyEx(gray, cv.MORPH_DILATE, np.ones((3, 3), np.uint8))
 
-    # gray = cv.bitwise_not(gray)
+    if debug:
+        contours, hierarchy = cv.findContours(gray, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
+        copy = frame.copy()
+        cv.drawContours(copy, contours, -1, (0, 255, 0), 5)
+        cv.imshow('contours', copy)
 
-    # gray = cv.medianBlur(gray, 5)
-    test = gray
-    # _, test = cv.threshold(gray, 180, 255, cv.THRESH_BINARY)
-    # cannied = cv.Canny(gray, minThreshold, maxThreshold, L2gradient=True)
-    # test = cv.morphologyEx(test, cv.MORPH_CLOSE, np.ones((23, 23), np.uint8))
-    # test = cv.morphologyEx(test, cv.MORPH_OPEN, np.ones((3, 3), np.uint8))
-    # cv.dilate(test, np.ones((9, 9), np.uint8), test, iterations=1)
-    # cv.erode(test, np.ones((21, 21), np.uint8), test, iterations=1)
-
-    cannied = cv.Canny(test, minThreshold, maxThreshold, L2gradient=True)
-    # cv.dilate(cannied, np.ones((15, 15), np.uint8), test, iterations=1)
-    # cv.erode(test, np.ones((15, 15), np.uint8), cannied, iterations=1)
-
-    # test = cv.medianBlur(test, 3)
-    _, test = cv.threshold(test, 90, 255, cv.THRESH_BINARY_INV)
-    contours, hierarchy = cv.findContours(test, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
-    hej = frame.copy()
-    cv.drawContours(hej, contours, -1, (0, 255, 0), 5)
-    cv.imshow('test', hej)
-
-    cannied = cv.morphologyEx(cannied, cv.MORPH_CLOSE, np.ones((11, 11), np.uint8))
-    # cannied = cv.morphologyEx(cannied, cv.MORPH_OPEN, np.ones((3, 3), np.uint8))
-
-    test = cv.morphologyEx(test, cv.MORPH_CLOSE, np.ones((11, 11), np.uint8))
-    return cannied
-    # return test
+    return gray
 
 
 def render_ruler(frame):

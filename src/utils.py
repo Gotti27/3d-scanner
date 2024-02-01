@@ -72,20 +72,32 @@ def my_ransac(frame, points):
     # return cv.fitEllipse(np.array(points))
 
 
+def are_all_leq(v1, v2):
+    if len(v1) != len(v2):
+        raise Exception("dimension mismatch")
+
+    for i in range(len(v1)):
+        if v1[i] > v2[i]:
+            return False
+    return True
+
+
 def get_point_color(frame, point):
-    b, g, r = frame[round(point[1])][round(point[0])]
-    if b < 80 and g < 80 and r < 80:
+    hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
+    value = np.array(hsv[round(point[1])][round(point[0])])
+
+    if are_all_leq(np.array([0, 0, 0]), value) and are_all_leq(value, np.array([180, 255, 60])):
         return "B"
-    elif 150 < b and 150 < g and 150 < r:
+    elif are_all_leq(np.array([0, 0, 180]), value) and are_all_leq(value, np.array([180, 40, 255])):
         return "W"
-    elif 180 < g < 230 and 180 < r < 230:
+    elif are_all_leq(np.array([20, 100, 100]), value) and are_all_leq(value, np.array([40, 255, 255])):
         return "Y"
-    elif 150 < r < 180:
+    elif are_all_leq(np.array([140, 100, 100]), value) and are_all_leq(value, np.array([170, 255, 255])):
         return "M"
-    elif 150 < b < 200:
+    elif are_all_leq(np.array([80, 100, 100]), value) and are_all_leq(value, np.array([110, 255, 255])):
         return "C"
     else:
-        return None  # "{}, {}, {}".format(b, g, r)
+        return None  # "{}, {}, {}".format(value[0], value[1], value[2])
 
 
 def convert_to_polar(ellipse: tuple[Sequence[float], Sequence[int], float], point):

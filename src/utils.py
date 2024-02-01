@@ -140,13 +140,10 @@ def find_line_equation(x1, y1, x2, y2):
 def find_plane_equation(point1, point2, point3):
     vector1 = np.array(point2) - np.array(point1)
     vector2 = np.array(point3) - np.array(point1)
-
     normal_vector = np.cross(vector1, vector2)
 
-    a, b, c = normal_vector
-    d = np.dot(normal_vector, np.array(point1))
-
-    return a, b, c, d
+    k = - np.sum(point1 * normal_vector)
+    return np.array([normal_vector[0], normal_vector[1], normal_vector[2], k])
 
 
 def find_plane_line_intersection(plane, point1, point2):

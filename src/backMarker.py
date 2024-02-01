@@ -6,51 +6,15 @@ import numpy as np
 from utils import find_line_equation
 
 
-def find_rectangle(frame, contours2, w, h):
-    _, test = cv.threshold(cv.cvtColor(frame.copy(), cv.COLOR_BGR2GRAY), 90, 255, cv.THRESH_BINARY_INV)
-    test = cv.morphologyEx(test, cv.MORPH_CLOSE, np.ones((11, 11), np.uint8))
-    contours, hierarchy = cv.findContours(test, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-
+def find_rectangle(contours):
     rects = []
-    # cv.drawContours(r, contours, -1, (0, 255, 0), 5)
 
     for i, contour in enumerate(contours):
-
-        # Approximate the contour to a polygon
         polygon = cv.approxPolyDP(contour, 0.01 * cv.arcLength(contour, True), True)
-
-        # cv.polylines(r, polygon, True, (0, 255, 0), 5)
-
-        '''
-        and abs(
-                1 - cv.contourArea(polygon) / (cv.boundingRect(polygon)[2] * cv.boundingRect(polygon)[3])) < 0.14
-        '''
-        # cv.fillPoly(r, contour, (0, 255, 0))
-
         area = cv.contourArea(contour)
 
         if len(polygon) == 4 and area > 100000 and any([p[0][1] < 300 for p in polygon]):
-            # polygon = [p[0] for p in polygon]
-            a, b, c, d = polygon
-            # cv.drawMarker(r, a[0], (255, 255, 0), cv.MARKER_CROSS, 30, 5)
-            # cv.drawMarker(r, b[0], (0, 255, 0), cv.MARKER_CROSS, 30, 5)
-            # cv.drawMarker(r, c[0], (255, 0, 0), cv.MARKER_CROSS, 30, 5)
-            # cv.drawMarker(r, d[0], (0, 0, 255), cv.MARKER_CROSS, 30, 5)
-
-            # e = cv.fitEllipse(contour)
-            # cv.ellipse(r, e, (0, 255, 0), 5)
-
-            # cv.polylines(r, polygon, True, (0, 255, 0), 10)
-
-            '''
-            for p in polygon:
-                print(p)
-            '''
-            # cv.drawMarker(r, p, (0, 0, 255), cv.MARKER_CROSS, 30, 3)
-
             rects.append(polygon)
-            # cv.drawContours(r, [contour], -1, (0, 255, 0),
-            #                5)
 
     rects.sort(key=lambda x: cv.contourArea(x))
     return rects[0]

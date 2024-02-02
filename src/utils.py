@@ -9,7 +9,7 @@ import numpy as np
 def pre_process_frame(frame, debug=False):
     gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
 
-    _, gray = cv.threshold(gray, 90, 255, cv.THRESH_BINARY_INV)
+    _, gray = cv.threshold(gray, 105, 255, cv.THRESH_BINARY_INV)
     gray = cv.morphologyEx(gray, cv.MORPH_DILATE, np.ones((3, 3), np.uint8))
 
     if debug:

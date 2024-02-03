@@ -83,7 +83,7 @@ def get_point_color(frame, point):
         return "W"
     elif are_all_leq(np.array([20, 100, 100]), value) and are_all_leq(value, np.array([40, 255, 255])):
         return "Y"
-    elif are_all_leq(np.array([140, 100, 100]), value) and are_all_leq(value, np.array([170, 255, 255])):
+    elif are_all_leq(np.array([140, 100, 100]), value) and are_all_leq(value, np.array([170, 255, 200])):
         return "M"
     elif are_all_leq(np.array([80, 100, 100]), value) and are_all_leq(value, np.array([110, 255, 255])):
         return "C"

@@ -1,7 +1,4 @@
-import math
-
 import cv2 as cv
-import numpy as np
 
 
 def find_laser_plate_point(frame, center):
@@ -9,30 +6,24 @@ def find_laser_plate_point(frame, center):
               round(center[1]) + 100:round(center[1]) + 200,
               round(center[0]) - 150:round(center[0]) + 150,
               :]
-    redChannel = cropped[:, :, 2]
-    redChannel = cv.medianBlur(redChannel, 5)
-    _, laser = cv.threshold(redChannel, 235, 255, cv.THRESH_BINARY)
 
-    lines = cv.HoughLinesP(laser, 1, np.pi / 180, 50, None, 50, 20)
+    cropped = cv.cvtColor(cropped, cv.COLOR_BGR2HSV)
+    # cropped = cv.medianBlur(cropped, 5)
 
-    longestLine = None
-    if lines is not None:
-        for l in lines:
-            if longestLine is None:
-                longestLine = l[0]
-                continue
+    mask1 = cv.inRange(cropped, (0, 60, 230), (20, 255, 255))
+    mask2 = cv.inRange(cropped, (150, 60, 230), (180, 255, 255))
+    cropped = mask1 | mask2
 
-            length = math.dist((l[0, 0:1]), (l[0, 2:3]))
-            longestLength = math.dist((longestLine[0:1]), (longestLine[2:3]))
-            if longestLength < length:
-                longestLine = l[0]
+    cv.imshow('test', cropped)
 
-    if longestLine is not None:
-        cv.line(cropped, (longestLine[0], longestLine[1]), (longestLine[2], longestLine[3]), (0, 0, 255), 3)
-        middle = (round((longestLine[0] + longestLine[2]) / 2), round((longestLine[1] + longestLine[3]) / 2))
-        cv.drawMarker(cropped, middle, (0, 255, 0), cv.MARKER_CROSS, 15, 5)
+    _, laser = cv.threshold(cropped, 235, 255, cv.THRESH_BINARY)
+
+    middle = cv.findNonZero(laser)[0][0]
+    cv.drawMarker(frame, middle, (0, 255, 0), cv.MARKER_TILTED_CROSS, 15, 2)
 
     cv.imshow("third point", cropped)
+    if middle is None:
+        return None
 
     return [round(middle[0] + center[0] - 150), round(middle[1] + center[1] + 100)]
 

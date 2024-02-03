@@ -3,7 +3,7 @@ import math
 import cv2 as cv
 import numpy as np
 
-from src.utils import my_ransac, convert_to_polar, get_point_color
+from utils import fit_ellipse_plate, convert_to_polar, get_point_color
 
 
 def get_color(c: str):
@@ -81,114 +81,95 @@ def find_plate_elements(frame: np.ndarray, contours, w, h):
     return plate
 
 
-def process_plate(plate, frame, original, mtx, dist):
+def process_plate(plate, frame, original, mtx, dist, debug=False):
     if len(plate) == 0:
         return
 
-    center = my_ransac(frame, plate)
+    center = fit_ellipse_plate(frame, plate)
 
     if center is None:
-        return
+        raise Exception("Cannot fit plate from the elements")
 
-    cv.ellipse(frame, center, (255, 0, 0), thickness=3)
-    cv.drawMarker(frame, (round(center[0][0]), round(center[0][1])), (255, 0, 255))
+    if debug:
+        cv.ellipse(frame, center, (255, 0, 0), thickness=3)
 
-    # cv.line(frame, center[0], (center[0][0], center[0][1] - 50), (100,100, 0), 5)
+    poly = cv.ellipse2Poly((round(center[0][0]), round(center[0][1])),
+                           (round(center[1][0] / 2), round(center[1][1] / 2)),
+                           round(center[2]), 0, 360, 10)
 
-    plate = list(filter(lambda d: 20 < convert_to_polar(center, d)[0] < 310, plate))
+    plate = list(filter(lambda point: abs(cv.pointPolygonTest(poly, point, True)) < 5, plate))
     symbols = []
 
     for p in plate:
-        color = get_point_color(original, p)
+        color = get_point_color(original.copy(), p)
         if color is None:
             continue
 
         polars = convert_to_polar(center, p)
-        # cv.putText(frame, color, d, cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2, cv.LINE_AA)
-        # cv.putText(frame, f"{round(polars[1])}", d, cv.FONT_HERSHEY_SIMPLEX, 1,
-        #           (0, 0, 0), 2, cv.LINE_AA)
-
-        # index = polars[1] / 18
         symbols.append([polars[1], color, p, polars, -1])
 
-    # symbols = symbols[:6]
-
     symbols.sort(key=lambda s: s[0], reverse=True)
-    # print(list(map(lambda s: s[1], symbols)))
-
-    t = []
-
-    for i in range(len(symbols) - 1):
-        t.append(symbols[i])
-        if abs(symbols[i][0] - symbols[(i + 1) % len(symbols)][0]) % 360 > 30:
-            t.append(None)
-
-    symbols = t
-
-    # print("".join(list(map(lambda s: s[1] if s is not None else '_', t))))
-    cv.putText(frame, "".join(list(map(lambda s: s[1] if s is not None else '_', t))), (100, 100),
-               cv.FONT_HERSHEY_SIMPLEX, 1,
-               (255, 255, 0), 2, cv.LINE_AA)
-
     symbols += symbols
-    # symbols = symbols[10:]
-    word = []
 
-    for i in range(len(symbols) - 1):
-        if symbols[i] is None or symbols[i + 1] is None:
-            word = []
-            continue
-        # print(abs(symbols[i][0] - symbols[i + 1][0]))
-        if abs(symbols[i][0] - symbols[i + 1][0]) < 30:
-            word.append(symbols[i])
-            if len(word) == 4:
+    necklace = 'YWMBMMCCCYWBMYWBYWBC' * 2
+
+    total = [[i, -1] for i in range(len(symbols) // 2)]
+
+    for i in range(len(symbols) // 2):
+        votes = []
+        for j in range(4):
+            # print(abs(symbols[(i + j) % len(symbols)][0] - symbols[(i + j + 1) % len(symbols)][0]) % 360)
+            # print(symbols[(i + j)][0], symbols[(i + j + 1)][0],
+            #      abs(symbols[(i + j)][0] - symbols[(i + j + 1)][0] + 360) % 360)
+            if abs(symbols[(i + j)][0] - symbols[(i + j + 1)][0] + 360) % 360 > 30:
+                votes = []
                 break
-        else:
-            word = []
+            else:
+                votes.append(symbols[i + j])
 
-    # print(len(word))
+        if len(votes) == 0:
+            continue
 
-    if len(word) < 4:
-        cv.putText(frame, "ERROR: word too short", (100, 100), cv.FONT_HERSHEY_SIMPLEX, 1,
-                   (255, 255, 0), 2, cv.LINE_AA)
-        return
+        # print("".join(map(lambda v: v[1], votes)))
+        temp_offset = necklace.find("".join(map(lambda v: v[1], votes)))
 
-    alphabet = 'YWMBMMCCCYWBMYWBYWBC' * 2
+        for j in range(i, i + 5):
+            total[j % (len(symbols) // 2)] = [j % (len(symbols) // 2), temp_offset]
+            temp_offset += 1
+            temp_offset %= 20
 
-    # print("".join(map(lambda w: w[1], word)))
-    offset = alphabet.find("".join(map(lambda w: w[1], word)))
-    # print(offset)
-    cv.putText(frame, str(offset), (100, 200), cv.FONT_HERSHEY_SIMPLEX, 1,
-               (255, 255, 0), 2, cv.LINE_AA)
-
-    # symbols = [x for index, x in enumerate(symbols) if offset < index < offset + 19]
-    # print(offset)
-    # print("".join(list(map(lambda s: s[1] if s is not None else '_', symbols))))
-    # print("---")
+    # print(total)
 
     obj_points = []
     pln_points = []
 
-    for i in range(19):
-        if symbols[i] is None:
+    for i in range(20):
+        if i >= len(total) or symbols[i] is None:
             break
 
-        symbols[i][4] = (offset + i) % 20
+        offset = total[i][1]
+        if offset == -1:
+            continue
 
-        angle = math.radians(18 * ((offset + i) % 20))
+        symbols[i][4] = offset
+
+        angle = math.radians(18 * offset)
 
         pln_p = [
-            (75 * np.cos(angle)),  # (300 * np.cos(angle)) + 500
-            (75 * np.sin(angle))  # (300 * np.sin(angle)) + 500
+            (75 * np.cos(angle)),
+            (75 * np.sin(angle))
         ]
 
         obj_points.append(symbols[i][2])
         pln_points.append(pln_p)
-        cv.putText(frame, f"{(offset + i) % 20}", symbols[i][2], cv.FONT_HERSHEY_SIMPLEX, 1,
+
+        cv.putText(frame, f"{offset}", symbols[i][2], cv.FONT_HERSHEY_SIMPLEX, 1,
                    (0, 0, 0), 2, cv.LINE_AA)
 
     if len(obj_points) < 4 or len(pln_points) < 4:
         return
+
+    '''
     H = cv.findHomography(np.array(obj_points), np.array(pln_points))
 
     transformed = cv.warpPerspective(original, H[0], (1000, 1000))
@@ -198,6 +179,7 @@ def process_plate(plate, frame, original, mtx, dist):
     cv.line(transformed, [0, 0], [-75, 0], (255, 255, 0), 5)
     cv.line(transformed, [0, 0], [0, -75], (0, 0, 255), 5)
     cv.drawMarker(transformed, [0, 0], (0, 0, 0), cv.MARKER_STAR, thickness=5)
+    '''
     # obj_points = list(map(lambda i: list(i).append(0), obj_points))
 
     obj_points = np.array(obj_points, dtype=np.float32)
@@ -241,6 +223,6 @@ def process_plate(plate, frame, original, mtx, dist):
 
     # test = [500, 500, 0]
 
-    cv.imshow('transformed', transformed)
+    # cv.imshow('transformed', transformed)
 
     return center, r, t

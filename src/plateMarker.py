@@ -72,7 +72,7 @@ def process_plate(plate, frame, original, mtx, dist, debug=False):
     for i in range(len(symbols) // 2):
         votes = []
         for j in range(4):
-            if abs(symbols[(i + j)][0] - symbols[(i + j + 1)][0] + 360) % 360 > 30:
+            if abs(symbols[(i + j)][0] - symbols[(i + j + 1)][0] + 360) % 360 > 25:
                 votes = []
                 break
             else:

@@ -80,15 +80,15 @@ def get_point_color(frame, point):
     hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
     value = np.array(hsv[round(point[1])][round(point[0])])
 
-    if are_all_leq(np.array([0, 0, 0]), value) and are_all_leq(value, np.array([180, 255, 60])):
+    if are_all_leq(np.array([0, 0, 0]), value) and are_all_leq(value, np.array([180, 255, 90])):
         return "B"
-    elif are_all_leq(np.array([0, 0, 180]), value) and are_all_leq(value, np.array([180, 40, 255])):
+    elif are_all_leq(np.array([0, 0, 180]), value) and are_all_leq(value, np.array([180, 99, 255])):
         return "W"
-    elif are_all_leq(np.array([20, 100, 100]), value) and are_all_leq(value, np.array([40, 255, 255])):
+    elif are_all_leq(np.array([10, 100, 100]), value) and are_all_leq(value, np.array([40, 255, 255])):
         return "Y"
-    elif are_all_leq(np.array([140, 100, 100]), value) and are_all_leq(value, np.array([170, 255, 200])):
+    elif are_all_leq(np.array([140, 100, 100]), value) and are_all_leq(value, np.array([170, 255, 255])):
         return "M"
-    elif are_all_leq(np.array([80, 100, 100]), value) and are_all_leq(value, np.array([110, 255, 255])):
+    elif are_all_leq(np.array([80, 100, 100]), value) and are_all_leq(value, np.array([180, 255, 200])):
         return "C"
     else:
         print(value)

@@ -43,8 +43,10 @@ def process_plate(plate, frame, original, mtx, dist, debug=False):
     if center is None:
         raise Exception("Cannot fit plate from the elements")
 
-    if debug:
-        cv.ellipse(frame, center, (255, 0, 0), thickness=3)
+    '''
+        if debug:
+            cv.ellipse(frame, center, (255, 0, 0), thickness=3)
+    '''
 
     poly = cv.ellipse2Poly((round(center[0][0]), round(center[0][1])),
                            (round(center[1][0] / 2), round(center[1][1] / 2)),

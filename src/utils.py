@@ -33,7 +33,7 @@ def render_ruler(frame):
 
 
 def fit_ellipse_plate(frame, points, debug=False):
-    if len(points) < 7:
+    if len(points) < 8:
         raise Exception("too few points")
 
     candidates = []
@@ -53,9 +53,12 @@ def fit_ellipse_plate(frame, points, debug=False):
             poly = cv.ellipse2Poly((round(center_x), round(center_y)), (round(axis_1 / 2), round(axis_2 / 2)),
                                    round(angle), 0, 360, 1)
 
-            if abs(cv.pointPolygonTest(np.array(poly), p, True)) < 5:  # TODO: lower this threshold
-                # cv.drawMarker(frame, np.array(p).astype(int), (255, 0, 255), cv.MARKER_TRIANGLE_UP)
-                # cv.line(frame, np.array(p).astype(int), np.array(candidate[0]).astype(int), color=(0, 255, 255))
+            if abs(cv.pointPolygonTest(np.array(poly), p, True)) < 5:
+                '''
+                if debug:
+                    cv.drawMarker(frame, np.array(p).astype(int), (255, 0, 255), cv.MARKER_TRIANGLE_UP)
+                    cv.line(frame, np.array(p).astype(int), np.array(candidate[0]).astype(int), color=(0, 255, 255))
+                '''
                 inliers.append(p)
 
         candidates.append([candidate, len(inliers)])
@@ -88,6 +91,7 @@ def get_point_color(frame, point):
     elif are_all_leq(np.array([80, 100, 100]), value) and are_all_leq(value, np.array([110, 255, 255])):
         return "C"
     else:
+        print(value)
         return None  # "{}, {}, {}".format(value[0], value[1], value[2])
 
 

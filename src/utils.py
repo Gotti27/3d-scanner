@@ -91,8 +91,7 @@ def get_point_color(frame, point):
     elif are_all_leq(np.array([80, 100, 100]), value) and are_all_leq(value, np.array([180, 255, 200])):
         return "C"
     else:
-        print(value)
-        return None  # "{}, {}, {}".format(value[0], value[1], value[2])
+        return None
 
 
 def convert_to_polar(ellipse: tuple[Sequence[float], Sequence[int], float], point):

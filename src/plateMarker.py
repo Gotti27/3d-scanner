@@ -110,8 +110,8 @@ def process_plate(plate, frame, original, mtx, dist, debug=False):
         obj_points.append(pln_p)
         pln_points.append(symbols[i][2])
 
-        cv.putText(frame, f"{offset}", symbols[i][2], cv.FONT_HERSHEY_SIMPLEX, 1,
-                   (0, 0, 0), 2, cv.LINE_AA)
+        cv.putText(frame, f"{symbols[i][1]}-{offset}", symbols[i][2], cv.FONT_HERSHEY_SIMPLEX, 0.7,
+                   (200, 125, 200), 2, cv.LINE_AA)
 
     if len(obj_points) < 4 or len(pln_points) < 4:
         raise Exception("too few point to calculate plate pose")

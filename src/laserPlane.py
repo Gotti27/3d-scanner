@@ -19,7 +19,9 @@ def find_laser_plate_point(frame, center, debug=False):
     _, laser = cv.threshold(cropped, 235, 255, cv.THRESH_BINARY)
     ret = cv.findNonZero(laser)
 
-    cv.imshow("third point", cropped)
+    if debug:
+        cv.imshow("third point", cropped)
+        
     if ret is None:
         raise Exception("third laser point not detected")
     laser_point = ret[0][0]

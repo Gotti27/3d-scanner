@@ -33,7 +33,7 @@ def render_ruler(frame):
 
 
 def fit_ellipse_plate(frame, points, debug=False):
-    if len(points) < 8:
+    if len(points) < 10:
         raise Exception("too few points")
 
     candidates = []

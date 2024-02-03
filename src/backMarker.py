@@ -69,20 +69,20 @@ def process_rectangle(frame, rectangle, mtx, dist, debug=False):
         cv.drawMarker(transformed, (longestLine[2], longestLine[3]), (0, 255, 0), cv.MARKER_CROSS, 5, 1)
         cv.imshow('back_plane', transformed)
 
-        projected, _ = cv.projectPoints(np.array([
-            [0, 0, 0],
-            [130, 0, 0],
-            [130, 230, 0],
-            [0, 230, 0],
-            [((-line_c - line_b * 0) / line_a), 0, 0],
-            [((-line_c - line_b * 230) / line_a), 230, 0],
-            [0, 0, 100]
-        ], dtype=np.float32), r, t, mtx, dist)
+    projected, _ = cv.projectPoints(np.array([
+        [0, 0, 0],
+        [130, 0, 0],
+        [130, 230, 0],
+        [0, 230, 0],
+        [((-line_c - line_b * 0) / line_a), 0, 0],
+        [((-line_c - line_b * 230) / line_a), 230, 0],
+        [0, 0, 100]
+    ], dtype=np.float32), r, t, mtx, dist)
 
-        cv.line(frame, [round(i) for i in projected[0][0]], [round(i) for i in projected[1][0]], (255, 0, 0), 5)
-        cv.line(frame, [round(i) for i in projected[0][0]], [round(i) for i in projected[2][0]], (0, 0, 255), 5)
-        cv.line(frame, [round(i) for i in projected[0][0]], [round(i) for i in projected[3][0]], (0, 255, 0), 5)
-        cv.line(frame, [round(i) for i in projected[0][0]], [round(i) for i in projected[6][0]], (255, 0, 255), 5)
-        cv.line(frame, [round(i) for i in projected[4][0]], [round(i) for i in projected[5][0]], (0, 255, 0), 5)
+    cv.line(frame, [round(i) for i in projected[0][0]], [round(i) for i in projected[1][0]], (255, 0, 0), 5)
+    cv.line(frame, [round(i) for i in projected[0][0]], [round(i) for i in projected[2][0]], (0, 0, 255), 5)
+    cv.line(frame, [round(i) for i in projected[0][0]], [round(i) for i in projected[3][0]], (0, 255, 0), 5)
+    cv.line(frame, [round(i) for i in projected[0][0]], [round(i) for i in projected[6][0]], (255, 0, 255), 5)
+    cv.line(frame, [round(i) for i in projected[4][0]], [round(i) for i in projected[5][0]], (0, 255, 0), 5)
 
     return r, t, line_a, line_b, line_c

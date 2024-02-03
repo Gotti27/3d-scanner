@@ -161,4 +161,4 @@ cv.waitKey(1)
 cv.destroyAllWindows()
 output_file.close()
 
-print("done")
+print(colored("-- done --", "green"))

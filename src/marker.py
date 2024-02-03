@@ -3,54 +3,7 @@ import math
 import cv2 as cv
 import numpy as np
 
-from src.utils import my_ransac, convert_to_polar, get_point_color
-
-
-def get_color(c: str):
-    match c:
-        case 'Y':
-            return 0, 255, 255
-        case 'W':
-            return 255, 255, 255
-        case 'M':
-            return 255, 255, 0
-        case 'C':
-            return 255, 0, 0
-        case 'B':
-            return 0, 0, 0
-
-
-def create_virtual_marker():
-    center = [150, 150]
-    # axis = [7.5 * 2, 7.5 * 2]
-    angle = 0
-
-    alphabet = ['Y', 'W', 'M', 'B', 'M', 'M', 'C', 'C', 'C', 'Y', 'W', 'B', 'M', 'Y', 'W', 'B', 'Y', 'W', "B", "C"]
-
-    canvas = np.zeros((300, 300, 3), dtype="uint8")
-    cv.ellipse(canvas, center, np.array([100, 100]), angle, 0, 360, (0, 255, 0), 5)
-    cv.drawMarker(canvas, center, (0, 0, 255))
-
-    points = []
-
-    for i, s in enumerate(alphabet):
-        a = math.radians(18 * i)
-
-        cv.drawMarker(canvas, [
-            round(150 + (100 * np.cos(a))),
-            round(150 + (100 * np.sin(a))),
-        ], get_color(s))
-
-        cv.putText(canvas, str(i), [
-            round(150 + (100 * np.cos(a))),
-            round(150 + (100 * np.sin(a))),
-        ], cv.FONT_HERSHEY_SIMPLEX, 1, get_color(s), 1, cv.LINE_AA)
-
-        points.append((a, 100, s))
-
-    cv.imshow("marker", canvas)
-
-    return points
+from utils import fit_ellipse_plate, convert_to_polar, get_point_color
 
 
 def find_plate_elements(frame: np.ndarray, contours, w, h):
@@ -81,166 +34,118 @@ def find_plate_elements(frame: np.ndarray, contours, w, h):
     return plate
 
 
-def process_plate(plate, frame, original, mtx, dist):
+def process_plate(plate, frame, original, mtx, dist, debug=False):
     if len(plate) == 0:
-        return
+        raise Exception("Cannot fit plate with no elements")
 
-    center = my_ransac(frame, plate)
+    center = fit_ellipse_plate(frame, plate)
 
     if center is None:
-        return
+        raise Exception("Cannot fit plate from the elements")
 
-    cv.ellipse(frame, center, (255, 0, 0), thickness=3)
-    cv.drawMarker(frame, (round(center[0][0]), round(center[0][1])), (255, 0, 255))
+    if debug:
+        cv.ellipse(frame, center, (255, 0, 0), thickness=3)
 
-    # cv.line(frame, center[0], (center[0][0], center[0][1] - 50), (100,100, 0), 5)
+    poly = cv.ellipse2Poly((round(center[0][0]), round(center[0][1])),
+                           (round(center[1][0] / 2), round(center[1][1] / 2)),
+                           round(center[2]), 0, 360, 10)
 
-    plate = list(filter(lambda d: 20 < convert_to_polar(center, d)[0] < 310, plate))
+    plate = list(filter(lambda point: abs(cv.pointPolygonTest(poly, point, True)) < 5, plate))
     symbols = []
 
     for p in plate:
-        color = get_point_color(original, p)
+        color = get_point_color(original.copy(), p)
         if color is None:
             continue
 
         polars = convert_to_polar(center, p)
-        # cv.putText(frame, color, d, cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2, cv.LINE_AA)
-        # cv.putText(frame, f"{round(polars[1])}", d, cv.FONT_HERSHEY_SIMPLEX, 1,
-        #           (0, 0, 0), 2, cv.LINE_AA)
-
-        # index = polars[1] / 18
-        symbols.append([polars[1], color, p, polars, -1])
-
-    # symbols = symbols[:6]
+        symbols.append([polars[1], color, p])
 
     symbols.sort(key=lambda s: s[0], reverse=True)
-    # print(list(map(lambda s: s[1], symbols)))
-
-    t = []
-
-    for i in range(len(symbols) - 1):
-        t.append(symbols[i])
-        if abs(symbols[i][0] - symbols[(i + 1) % len(symbols)][0]) % 360 > 30:
-            t.append(None)
-
-    symbols = t
-
-    # print("".join(list(map(lambda s: s[1] if s is not None else '_', t))))
-    cv.putText(frame, "".join(list(map(lambda s: s[1] if s is not None else '_', t))), (100, 100),
-               cv.FONT_HERSHEY_SIMPLEX, 1,
-               (255, 255, 0), 2, cv.LINE_AA)
-
     symbols += symbols
-    # symbols = symbols[10:]
-    word = []
+    necklace = 'YWMBMMCCCYWBMYWBYWBC' * 2
 
-    for i in range(len(symbols) - 1):
-        if symbols[i] is None or symbols[i + 1] is None:
-            word = []
-            continue
-        # print(abs(symbols[i][0] - symbols[i + 1][0]))
-        if abs(symbols[i][0] - symbols[i + 1][0]) < 30:
-            word.append(symbols[i])
-            if len(word) == 4:
+    total = [[i, -1] for i in range(len(symbols) // 2)]
+
+    for i in range(len(symbols) // 2):
+        votes = []
+        for j in range(4):
+            if abs(symbols[(i + j)][0] - symbols[(i + j + 1)][0] + 360) % 360 > 30:
+                votes = []
                 break
-        else:
-            word = []
+            else:
+                votes.append(symbols[i + j])
 
-    # print(len(word))
+        if len(votes) == 0:
+            continue
 
-    if len(word) < 4:
-        cv.putText(frame, "ERROR: word too short", (100, 100), cv.FONT_HERSHEY_SIMPLEX, 1,
-                   (255, 255, 0), 2, cv.LINE_AA)
-        return
+        temp_offset = necklace.find("".join(map(lambda v: v[1], votes)))
 
-    alphabet = 'YWMBMMCCCYWBMYWBYWBC' * 2
-
-    # print("".join(map(lambda w: w[1], word)))
-    offset = alphabet.find("".join(map(lambda w: w[1], word)))
-    # print(offset)
-    cv.putText(frame, str(offset), (100, 200), cv.FONT_HERSHEY_SIMPLEX, 1,
-               (255, 255, 0), 2, cv.LINE_AA)
-
-    # symbols = [x for index, x in enumerate(symbols) if offset < index < offset + 19]
-    # print(offset)
-    # print("".join(list(map(lambda s: s[1] if s is not None else '_', symbols))))
-    # print("---")
+        for j in range(i, i + 5):
+            total[j % (len(symbols) // 2)] = [j % (len(symbols) // 2), temp_offset]
+            temp_offset += 1
+            temp_offset %= 20
 
     obj_points = []
     pln_points = []
 
-    for i in range(19):
-        if symbols[i] is None:
+    for i in range(20):
+        if i >= len(total):
             break
+        if symbols[i] is None:
+            continue
 
-        symbols[i][4] = (offset + i) % 20
+        offset = total[i][1]
+        if offset == -1:
+            continue
 
-        angle = math.radians(18 * ((offset + i) % 20))
-
+        angle = math.radians(18 * offset)
         pln_p = [
-            (75 * np.cos(angle)),  # (300 * np.cos(angle)) + 500
-            (75 * np.sin(angle))  # (300 * np.sin(angle)) + 500
+            75 * np.cos(angle),
+            75 * np.sin(angle)
         ]
 
-        obj_points.append(symbols[i][2])
-        pln_points.append(pln_p)
-        cv.putText(frame, f"{(offset + i) % 20}", symbols[i][2], cv.FONT_HERSHEY_SIMPLEX, 1,
+        obj_points.append(pln_p)
+        pln_points.append(symbols[i][2])
+
+        cv.putText(frame, f"{offset}", symbols[i][2], cv.FONT_HERSHEY_SIMPLEX, 1,
                    (0, 0, 0), 2, cv.LINE_AA)
 
     if len(obj_points) < 4 or len(pln_points) < 4:
-        return
-    H = cv.findHomography(np.array(obj_points), np.array(pln_points))
+        raise Exception("too few point to calculate plate pose")
 
-    transformed = cv.warpPerspective(original, H[0], (1000, 1000))
-
-    cv.line(transformed, [0, 0], [75, 0], (255, 0, 0), 5)
-    cv.line(transformed, [0, 0], [0, 75], (0, 255, 0), 5)
-    cv.line(transformed, [0, 0], [-75, 0], (255, 255, 0), 5)
-    cv.line(transformed, [0, 0], [0, -75], (0, 0, 255), 5)
-    cv.drawMarker(transformed, [0, 0], (0, 0, 0), cv.MARKER_STAR, thickness=5)
-    # obj_points = list(map(lambda i: list(i).append(0), obj_points))
+    if debug:
+        H = cv.findHomography(np.array(pln_points),
+                              np.array(
+                                  list(map(lambda point: [(point[0] * 2) + 250, (point[1] * 2) + 250], obj_points))))
+        transformed = cv.warpPerspective(original, H[0], (500, 500))
+        cv.line(transformed, [250, 250], [75 * 2 + 250, 250], (255, 0, 0), 5)
+        cv.line(transformed, [250, 250], [250, 75 * 2 + 250], (0, 255, 0), 5)
+        cv.line(transformed, [250, 250], [-75 * 2 + 250, 250], (255, 255, 0), 5)
+        cv.line(transformed, [250, 250], [250, -75 * 2 + 250], (0, 0, 255), 5)
+        cv.drawMarker(transformed, [250, 250], (0, 0, 0), cv.MARKER_STAR, 15, thickness=2)
+        cv.imshow('plate homography', transformed)
 
     obj_points = np.array(obj_points, dtype=np.float32)
     pln_points = np.array(pln_points, dtype=np.float32)
+    obj_points = np.append(obj_points, np.zeros((len(obj_points), 1)), axis=1)
 
-    pln_points = np.append(pln_points, np.zeros((len(pln_points), 1)), axis=1)
-
-    _, r, t = cv.solvePnP(np.array(pln_points, dtype=np.float32), np.array(obj_points, dtype=np.float32),
+    _, r, t = cv.solvePnP(np.array(obj_points, dtype=np.float32), np.array(pln_points, dtype=np.float32),
                           mtx, dist, flags=cv.SOLVEPNP_IPPE)
 
-    # r = cv.Rodrigues(r)
-    # print(r)
-    # print(t)
-
-    g, _ = cv.projectPoints(np.array([
+    projected, _ = cv.projectPoints(np.array([
         [0, 0, 0],
         [75, 0, 0],
         [0, 75, 0],
         [0, -75, 0],
         [-75, 0, 0],
         [0, 0, 75],
-
-        # [800, 800, 0],
-        # [800, 200, 0],
-        # [200, 200, 0],
-        # [200, 800, 0],
     ], dtype=np.float32), r, t, mtx, dist)
-    # print("g (" + str(g[1][0]) + ")")
-    cv.line(frame, [round(i) for i in g[0][0]], [round(i) for i in g[1][0]], (255, 0, 0), 5)
-    cv.line(frame, [round(i) for i in g[0][0]], [round(i) for i in g[2][0]], (0, 255, 0), 5)
-    cv.line(frame, [round(i) for i in g[0][0]], [round(i) for i in g[3][0]], (0, 0, 255), 5)
-    cv.line(frame, [round(i) for i in g[0][0]], [round(i) for i in g[4][0]], (255, 255, 0), 5)
-    cv.line(frame, [round(i) for i in g[0][0]], [round(i) for i in g[5][0]], (255, 0, 255), 5)
-
-    # cv.line(frame, [round(i) for i in g[1][0]], [round(i) for i in g[7][0]], (255, 0, 255), 5)
-    # cv.line(frame, [round(i) for i in g[2][0]], [round(i) for i in g[6][0]], (255, 0, 255), 5)
-    # cv.line(frame, [round(i) for i in g[3][0]], [round(i) for i in g[8][0]], (255, 0, 255), 5)
-    # cv.line(frame, [round(i) for i in g[9][0]], [round(i) for i in g[4][0]], (255, 0, 255), 5)
-
-    cv.drawMarker(frame, [round(i) for i in g[0][0]], (255, 0, 255), cv.MARKER_STAR)
-
-    # test = [500, 500, 0]
-
-    cv.imshow('transformed', transformed)
+    cv.line(frame, [round(i) for i in projected[0][0]], [round(i) for i in projected[1][0]], (255, 0, 0), 5)
+    cv.line(frame, [round(i) for i in projected[0][0]], [round(i) for i in projected[2][0]], (0, 255, 0), 5)
+    cv.line(frame, [round(i) for i in projected[0][0]], [round(i) for i in projected[3][0]], (0, 0, 255), 5)
+    cv.line(frame, [round(i) for i in projected[0][0]], [round(i) for i in projected[4][0]], (255, 255, 0), 5)
+    cv.line(frame, [round(i) for i in projected[0][0]], [round(i) for i in projected[5][0]], (255, 0, 255), 5)
+    cv.drawMarker(frame, [round(i) for i in projected[0][0]], (255, 0, 255), cv.MARKER_STAR)
 
     return center, r, t

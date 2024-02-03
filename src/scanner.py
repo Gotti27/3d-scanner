@@ -1,9 +1,11 @@
 import argparse
 import pickle
 
-from marker import *
-from src.backMarker import *
-from src.laserPlane import *
+from termcolor import colored
+
+from backMarker import *
+from laserPlane import *
+from plateMarker import *
 from utils import *
 
 parser = argparse.ArgumentParser()
@@ -40,8 +42,13 @@ h, w = cap.read()[1].shape[:2]
 new_camera_matrix, roi = cv.getOptimalNewCameraMatrix(mtx, dist, (w, h), 1, (w, h))
 x, y, w, h = roi
 
+debug = args.debug
+
+if debug:
+    print(colored('- Debug mode activated', 'yellow'))
+
 print("new camera matrix", new_camera_matrix)
-print("--- Parameters Loaded ---")
+print(colored("--- Parameters Loaded ---", "green"))
 
 while cap.isOpened():
     ret, frame = cap.read()
@@ -54,14 +61,15 @@ while cap.isOpened():
 
     original = frame.copy()
 
-    canny = pre_process_frame(frame)
-    contours, hierarchy = cv.findContours(canny, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
+    processedFrame = pre_process_frame(frame, debug=debug)
+    contours, hierarchy = cv.findContours(processedFrame, cv.RETR_TREE, cv.CHAIN_APPROX_NONE)
 
-    rectangle = find_rectangle(frame, contours, w, h)
-    back_r, back_t, back_a, back_b, back_c = process_rectangle(rectangle, frame, original, mtx, dist)
+    rectangle = find_rectangle(contours)
+    back_r, back_t, back_a, back_b, back_c = process_rectangle(frame, rectangle, mtx, dist,
+                                                               debug=debug)
 
     plate_elements = find_plate_elements(frame, contours, w, h)
-    plate, plate_r, plate_t = process_plate(plate_elements, frame, original, mtx, dist)
+    plate, plate_r, plate_t = process_plate(plate_elements, frame, original, mtx, dist, debug=debug)
 
     camera_to_plate = np.concatenate([
         np.concatenate([np.array(cv.transpose(cv.Rodrigues(plate_r)[0])),
@@ -74,9 +82,9 @@ while cap.isOpened():
     ], dtype=np.float32), plate_r, plate_t, mtx, dist)[0][0][0]
 
     third = find_laser_plate_point(original.copy(), center)
-    third_camera = np.array([third[0], third[1], 1])
-    third_camera = np.linalg.inv(mtx) @ third_camera
-    third_camera = np.concatenate((third_camera, [1]))
+    # cv.drawMarker(frame, third, (255, 0, 0), cv.MARKER_TRIANGLE_UP, 15, 3)
+
+    third_camera = np.array([third[0] - (w // 2), third[1] - (h // 2), mtx[0][0], 1])
 
     third_plate = camera_to_plate @ third_camera
     third_plate = [third_plate[0] / third_plate[3], third_plate[1] / third_plate[3],
@@ -86,8 +94,8 @@ while cap.isOpened():
     origin = origin.transpose()[0]
 
     direction_vector = third_plate - origin
-    t = - third_plate[2] / direction_vector[2]
-    intersection_point = third_plate + t * direction_vector
+    t = - origin[2] / direction_vector[2]
+    intersection_point = origin + (t * direction_vector)
 
     back_to_camera = np.concatenate([
         np.concatenate([cv.Rodrigues(back_r)[0], back_t], axis=1),
@@ -103,7 +111,7 @@ while cap.isOpened():
     second_plate = [second_plate[0] / second_plate[3], second_plate[1] / second_plate[3],
                     second_plate[2] / second_plate[3]]
 
-    plane = find_plane_equation(second_plate, first_plate, intersection_point)
+    plane = find_plane_equation(np.array(second_plate), np.array(first_plate), np.array(intersection_point))
 
     o, _ = cv.projectPoints(np.array([
         intersection_point,
@@ -119,9 +127,7 @@ while cap.isOpened():
 
     laser_points = detect_laser_points(original.copy(), plate)
     for i in laser_points:
-        i_camera = np.array([i[0], i[1], 1])
-        i_camera = np.linalg.inv(mtx) @ i_camera
-        i_camera = np.concatenate((i_camera, [1]))
+        i_camera = np.array([i[0] - (w / 2), i[1] - (h / 2), mtx[0][0], 1])
         i_plate = camera_to_plate @ i_camera
         i_plate = [i_plate[0] / i_plate[3], i_plate[1] / i_plate[3],
                    i_plate[2] / i_plate[3]]
@@ -133,11 +139,15 @@ while cap.isOpened():
         ], dtype=np.float32), plate_r, plate_t, mtx, dist)
 
         output_file.write(f"{point[0]} {point[1]} {point[2]}\n")
-        cv.drawMarker(frame, [round(m) for m in test[0][0]], (0, 0, 255), cv.MARKER_TILTED_CROSS, 10, 3)
+        cv.drawMarker(frame, [round(m) for m in test[0][0]], (0, 0, 255), cv.MARKER_TILTED_CROSS, 5, 1)
+        # cv.drawMarker(frame, [round(m) for m in i], (0, 255, 0), cv.MARKER_CROSS, 5, 1)
 
-    cv.imshow('debug', canny)
+    cv.putText(frame,
+               f"{str(round(int(cap.get(cv.CAP_PROP_POS_FRAMES)) / int(cap.get(cv.CAP_PROP_FRAME_COUNT)) * 100, 2))}%",
+               (100, 100), cv.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 1, cv.LINE_AA)
+
+    output_file.flush()
     cv.imshow('scanner', frame)
-
     if cv.waitKey(1) == ord('q'):
         break
 

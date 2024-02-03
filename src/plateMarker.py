@@ -119,11 +119,11 @@ def process_plate(plate, frame, original, mtx, dist, debug=False):
                               np.array(
                                   list(map(lambda point: [(point[0] * 2) + 250, (point[1] * 2) + 250], obj_points))))
         transformed = cv.warpPerspective(original, H[0], (500, 500))
-        cv.line(transformed, [250, 250], [75 * 2 + 250, 250], (255, 0, 0), 5)
-        cv.line(transformed, [250, 250], [250, 75 * 2 + 250], (0, 255, 0), 5)
-        cv.line(transformed, [250, 250], [-75 * 2 + 250, 250], (255, 255, 0), 5)
-        cv.line(transformed, [250, 250], [250, -75 * 2 + 250], (0, 0, 255), 5)
-        cv.drawMarker(transformed, [250, 250], (0, 0, 0), cv.MARKER_STAR, 15, thickness=2)
+        cv.line(transformed, [250, 250], [75 * 2 + 250, 250], (255, 0, 0), 1)
+        cv.line(transformed, [250, 250], [250, 75 * 2 + 250], (0, 255, 0), 1)
+        cv.line(transformed, [250, 250], [-75 * 2 + 250, 250], (255, 255, 0), 1)
+        cv.line(transformed, [250, 250], [250, -75 * 2 + 250], (0, 0, 255), 1)
+        cv.drawMarker(transformed, [250, 250], (0, 0, 0), cv.MARKER_TILTED_CROSS, 15, thickness=1)
         cv.imshow('plate homography', transformed)
 
     obj_points = np.array(obj_points, dtype=np.float32)

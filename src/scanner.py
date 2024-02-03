@@ -9,8 +9,8 @@ from plateMarker import *
 from utils import *
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", "--input", dest="inputFile", help="Input file path")
-parser.add_argument("-o", "--output", dest="outputFile", help="Output file path")
+parser.add_argument("-i", "--input", dest="inputFile", help="Input file path", required=True)
+parser.add_argument("-o", "--output", dest="outputFile", help="Output file path", required=True)
 parser.add_argument("-d", "--debug", dest="debug", help="Enable debug mode", action="store_true", default=False)
 args = parser.parse_args()
 
@@ -123,7 +123,7 @@ while cap.isOpened():
         ], dtype=np.float32), plate_r, plate_t, mtx, dist)
 
         cv.line(frame, [round(i) for i in o[0][0]], [round(i) for i in o[1][0]], (0, 0, 0), 5)
-        cv.drawMarker(frame, [round(i) for i in o[0][0]], (0, 255, 0), cv.MARKER_CROSS, 30, 5)
+        cv.drawMarker(frame, [round(i) for i in o[0][0]], (0, 255, 0), cv.MARKER_CROSS, 30, 1)
         cv.drawMarker(frame, [round(i) for i in o[2][0]], (255, 255, 0), cv.MARKER_CROSS, 30, 5)
         cv.drawMarker(frame, [round(i) for i in o[3][0]], (255, 0, 0), cv.MARKER_CROSS, 30, 5)
 
@@ -142,7 +142,6 @@ while cap.isOpened():
 
             output_file.write(f"{point[0]} {point[1]} {point[2]}\n")
             cv.drawMarker(frame, [round(m) for m in test[0][0]], (0, 0, 255), cv.MARKER_TILTED_CROSS, 5, 1)
-            # cv.drawMarker(frame, [round(m) for m in i], (0, 255, 0), cv.MARKER_CROSS, 5, 1)
 
     except Exception as error:
         print(colored(f"ERROR: {error}", "red"))

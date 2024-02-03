@@ -22,6 +22,7 @@ def find_rectangle(contours):
 
 def process_rectangle(frame, rectangle, mtx, dist, debug=False):
     a, b, c, d = rectangle
+    original = frame.copy()
 
     obj_points = [[0, 0, 0], [130, 0, 0], [130, 230, 0], [0, 230, 0]]
     pln_points = [a[0], b[0], c[0], d[0]]
@@ -32,12 +33,7 @@ def process_rectangle(frame, rectangle, mtx, dist, debug=False):
     cv.drawMarker(frame, d[0], (0, 0, 255), cv.MARKER_TILTED_CROSS, 30, 5)
 
     H = cv.findHomography(np.array(pln_points), np.array([[o[0], o[1]] for o in obj_points]))
-    transformed = cv.warpPerspective(frame.copy(), H[0], (1000, 1000))
-
-    if debug:
-        cv.line(transformed, [100 * 2, 100 * 2], [230 * 2, 100 * 2], (255, 0, 0), 5)
-        cv.line(transformed, [100 * 2, 100 * 2], [100 * 2, 330 * 2], (0, 255, 0), 5)
-        cv.line(transformed, [100 * 2, 100 * 2], [230 * 2, 330 * 2], (0, 0, 255), 5)
+    transformed = cv.warpPerspective(original, H[0], (1000, 1000))
 
     transformed = transformed[0:230, 0:130]
 
@@ -46,8 +42,7 @@ def process_rectangle(frame, rectangle, mtx, dist, debug=False):
 
     redChannel = transformed[:, :, 2].copy()
     _, laser = cv.threshold(redChannel, 200, 255, cv.THRESH_BINARY)
-
-    lines = cv.HoughLinesP(laser, 1, np.pi / 180, 50, minLineLength=5)
+    lines = cv.HoughLinesP(laser, 1, np.pi / 360, 200, minLineLength=5)
 
     longestLine = None
     if lines is not None and len(lines) > 0:

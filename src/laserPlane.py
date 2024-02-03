@@ -21,7 +21,7 @@ def find_laser_plate_point(frame, center, debug=False):
 
     if debug:
         cv.imshow("third point", cropped)
-        
+
     if ret is None:
         raise Exception("third laser point not detected")
     laser_point = ret[0][0]
@@ -36,8 +36,8 @@ def detect_laser_points(frame, ellipse, debug=False):
                       round(ellipse[0][0] - ellipse[1][1] / 2): round(ellipse[0][0] + ellipse[1][1] / 2),
                       :], cv.COLOR_BGR2HSV)
 
-    mask1 = cv.inRange(hsv, (0, 70, 230), (10, 255, 255))
-    mask2 = cv.inRange(hsv, (160, 70, 230), (180, 255, 255))
+    mask1 = cv.inRange(hsv, (0, 75, 225), (20, 255, 255))
+    mask2 = cv.inRange(hsv, (150, 75, 225), (180, 255, 255))
 
     laser = mask1 | mask2
 

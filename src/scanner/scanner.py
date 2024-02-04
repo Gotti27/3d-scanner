@@ -73,7 +73,7 @@ while cap.isOpened():
         back_r, back_t, back_a, back_b, back_c = process_rectangle(frame, rectangle, mtx, dist,
                                                                    debug=debug)
 
-        plate_elements = find_plate_elements(frame, contours, w, h)  # find the elements of the plate marker
+        plate_elements = find_plate_elements(frame, contours)  # find the elements of the plate marker
         # process the elements of the plate marker to recover the plate marker ellipse and the marker pose (rt)
         plate, plate_r, plate_t = process_plate(plate_elements, frame, original, mtx, dist, debug=debug)
 
@@ -124,7 +124,7 @@ while cap.isOpened():
 
         '''
             the third point can be found by intersecting the plate plane z = 0 with the ray passing through the camera 
-            origin wrt to the plate and a third point of the laser detected on the plate, mapped first in camera 
+            origin wrt the plate and a third point of the laser detected on the plate, mapped first in camera 
             reference system and then in plate coordinates
         '''
         # find a third laser point on the plate image
@@ -141,7 +141,7 @@ while cap.isOpened():
         camera_origin = - np.transpose(cv.Rodrigues(plate_r)[0]) @ np.array(plate_t)
         camera_origin = camera_origin.transpose()[0]
 
-        # compute the 3d line passing through the camera origin and the third point wrt to the plate
+        # compute the 3d line passing through the camera origin and the third point wrt the plate
         direction_vector = third_plate - camera_origin
         t = - camera_origin[2] / direction_vector[2]
         intersection_point = camera_origin + (t * direction_vector)
@@ -186,7 +186,7 @@ while cap.isOpened():
 
     cv.putText(frame,
                f"{str(round(int(cap.get(cv.CAP_PROP_POS_FRAMES)) / int(cap.get(cv.CAP_PROP_FRAME_COUNT)) * 100, 2))}%",
-               (100, 100), cv.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 1, cv.LINE_AA)
+               (100, 100), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 1, cv.LINE_AA)
 
     output_file.flush()
     cv.imshow('scanner', frame)  # show the scanner window

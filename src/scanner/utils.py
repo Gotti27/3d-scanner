@@ -85,7 +85,7 @@ def fit_ellipse_plate(frame, points, debug=False):
 
 def are_all_leq(v1, v2):
     """
-    Given two vectors, check if all elements of the first are leq wrt to the corresponding ones of the second vector
+    Given two vectors, check if all elements of the first are leq wrt the corresponding ones of the second vector
     :param v1: first vector
     :param v2: second vector
     :return: bool
@@ -125,10 +125,10 @@ def get_point_color(frame, point):
 
 def convert_to_polar(ellipse: tuple[Sequence[float], Sequence[int], float], point):
     """
-    Given an ellipse and a point, calculate the polar coordinates wrt to the ellipse center
+    Given an ellipse and a point, calculate the polar coordinates wrt the ellipse center
     :param ellipse: the ellipse
     :param point: the point
-    :return: the polar coordinates of the point wrt to the ellipse center
+    :return: the polar coordinates of the point wrt the ellipse center
     """
     vector = (point[0] - ellipse[0][0], point[1] - ellipse[0][1])  # vector from ellipse center to point
     radius = np.linalg.norm(vector)  # norm of that vector

@@ -115,17 +115,17 @@ while cap.isOpened():
 
         plane = find_plane_equation(np.array(second_plate), np.array(first_plate), np.array(intersection_point))
 
-        o, _ = cv.projectPoints(np.array([
+        projected, _ = cv.projectPoints(np.array([
             intersection_point,
             [0, 0, 0],
             first_plate,
             second_plate
         ], dtype=np.float32), plate_r, plate_t, mtx, dist)
 
-        cv.line(frame, [round(i) for i in o[0][0]], [round(i) for i in o[1][0]], (0, 0, 0), 5)
-        cv.drawMarker(frame, [round(i) for i in o[0][0]], (0, 255, 0), cv.MARKER_CROSS, 30, 1)
-        cv.drawMarker(frame, [round(i) for i in o[2][0]], (255, 255, 0), cv.MARKER_CROSS, 30, 5)
-        cv.drawMarker(frame, [round(i) for i in o[3][0]], (255, 0, 0), cv.MARKER_CROSS, 30, 5)
+        cv.line(frame, [round(i) for i in projected[0][0]], [round(i) for i in projected[1][0]], (0, 0, 0), 5)
+        cv.drawMarker(frame, [round(i) for i in projected[0][0]], (0, 255, 0), cv.MARKER_CROSS, 30, 1)
+        cv.drawMarker(frame, [round(i) for i in projected[2][0]], (255, 255, 0), cv.MARKER_CROSS, 30, 5)
+        cv.drawMarker(frame, [round(i) for i in projected[3][0]], (255, 0, 0), cv.MARKER_CROSS, 30, 5)
 
         laser_points = detect_laser_points(original.copy(), plate, debug=debug)
         for i in laser_points:

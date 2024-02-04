@@ -23,12 +23,12 @@ cv.startWindowThread()
 cv.namedWindow("scanner")
 
 # Camera parameters loading
-file = open('../camera-parameters/camera-matrix', 'rb')
+file = open('camera-parameters/camera-matrix', 'rb')
 mtx = pickle.load(file)
 print("camera matrix", mtx)
 file.close()
 
-file = open('../camera-parameters/camera-distortion', 'rb')
+file = open('camera-parameters/camera-distortion', 'rb')
 dist = pickle.load(file)
 print("camera distortion vector", dist)
 file.close()

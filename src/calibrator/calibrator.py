@@ -1,7 +1,8 @@
-import numpy as np
-import cv2 as cv
-import pickle
 import os
+import pickle
+
+import cv2 as cv
+import numpy as np
 
 criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
@@ -15,7 +16,7 @@ imgpoints = []  # 2d points in image plane.
 
 cv.startWindowThread()
 
-cap = cv.VideoCapture('../data/calibration.mov')
+cap = cv.VideoCapture('data/calibration.mov')
 gray = None
 
 i = 0
@@ -35,14 +36,13 @@ while cap.isOpened():
         objpoints.append(objp)
         corners2 = cv.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
         imgpoints.append(corners2)
-        cv.drawChessboardCorners(frame, (9, 6), corners2, ret) # corners2, ret)
+        cv.drawChessboardCorners(frame, (9, 6), corners2, ret)
 
     cv.imshow('calibrator', frame)
     if cv.waitKey(1) == ord('q'):
         break
 
     i += 60
-
 
 cap.release()
 cv.waitKey(1)
@@ -51,16 +51,16 @@ cv.destroyAllWindows()
 ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(objpoints, imgpoints, gray.shape[::-1], None, None)
 print("rms: " + str(ret))
 
-if not os.path.exists("../camera-parameters"):
-    os.mkdir("../camera-parameters")
+if not os.path.exists("camera-parameters"):
+    os.mkdir("camera-parameters")
 
 print(mtx)
-file = open('../camera-parameters/camera-matrix', 'wb')
+file = open('camera-parameters/camera-matrix', 'wb')
 pickle.dump(mtx, file)
 file.close()
 
 print(dist)
-file = open('../camera-parameters/camera-distortion', 'wb')
+file = open('camera-parameters/camera-distortion', 'wb')
 pickle.dump(dist, file)
 file.close()
 
@@ -72,7 +72,7 @@ dst = cv.undistort(gray, mtx, dist, None, newcameramtx)
 # crop the image
 x, y, w, h = roi
 dst = dst[y:y + h, x:x + w]
-cv.imwrite('../output/calibrationResult.png', dst)
+cv.imwrite('output/calibrationResult.png', dst)
 
 mean_error = 0
 for i in range(len(objpoints)):

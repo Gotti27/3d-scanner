@@ -177,6 +177,9 @@ while cap.isOpened():
             # laser point on the image with the 3d laser plane
             object_point = find_plane_line_intersection(plane, camera_origin, i_plate)
 
+            if not (-40 < object_point[0] < 40 and -40 < object_point[1] < 40 and object_point[2] >= 0):
+                continue
+
             # output the object point
             output_file.write(f"{object_point[0]} {object_point[1]} {object_point[2]}\n")
             cv.drawMarker(frame, lp, (0, 0, 255), cv.MARKER_TILTED_CROSS, 5, 1)

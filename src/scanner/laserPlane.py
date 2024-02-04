@@ -54,8 +54,8 @@ def detect_laser_points(frame, ellipse, debug=False):
                       :], cv.COLOR_BGR2HSV)
 
     # red laser mask ranges
-    mask1 = cv.inRange(hsv, (0, 75, 225), (20, 255, 255))
-    mask2 = cv.inRange(hsv, (150, 75, 225), (180, 255, 255))
+    mask1 = cv.inRange(hsv, (0, 70, 225), (20, 255, 255))
+    mask2 = cv.inRange(hsv, (155, 70, 225), (180, 255, 255))
 
     laser = mask1 | mask2
 
